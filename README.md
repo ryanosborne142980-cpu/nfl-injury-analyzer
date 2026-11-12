@@ -99,11 +99,28 @@ erDiagram
 ## Layout
 
 ```
-extract/      Python extraction from nflverse
-sql/          DDL and transform scripts
-tests/        data quality checks
-raw_files/    downloaded source files (git-ignored)
+config/             environment settings (dev.yaml), no secrets
+src/ingestion/      Python extraction from nflverse
+src/utilities/      config loader, shared helpers
+sql/raw|staging|dim|fact/   DDL and transforms, one folder per layer
+tests/unit|integration|data_quality/
+docs/               schema, data dictionary, decision log
+raw_files/          downloaded source files (git-ignored)
 ```
+
+## Configuration
+
+Settings live in `config/<env>.yaml`, selected by the `NFL_ENV` variable (default `dev`). Secrets never go in YAML: set `DB_USER` and `DB_PASSWORD` as environment variables (see `.env.example`), and only when `database.trusted_connection` is `false`. The loader rejects any config file containing secret-like keys.
+
+```python
+from src.utilities.config import load_config
+
+cfg = load_config()                       # NFL_ENV or "dev"
+seasons = cfg.season_range(current_season=2025)
+conn_str = cfg.connection_string()
+```
+
+Run the tests with `python -m pytest`.
 
 ## Authors
 

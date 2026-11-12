@@ -1,0 +1,45 @@
+# Dev environment configuration.
+# NO SECRETS HERE. Credentials come from environment variables (see .env.example).
+# The loader rejects this file if it contains keys like password, user, token or secret.
+
+env: dev
+
+project:
+  name: nfl-injury-analyzer
+
+source:
+  provider: nflverse
+  seasons:
+    start: 2010
+    end: null            # null = latest available season
+  datasets:
+    - players
+    - rosters
+    - schedules
+    - injuries
+
+paths:                   # relative to repo root
+  raw_files: raw_files
+  sql: sql
+
+database:
+  driver: "ODBC Driver 18 for SQL Server"
+  server: localhost
+  port: 1433
+  name: nfl_injury_dev
+  trusted_connection: true       # Windows/Kerberos auth. false = SQL auth via DB_USER / DB_PASSWORD env vars
+  encrypt: true
+  trust_server_certificate: true # dev only. Set false in prod.
+  schemas:
+    raw: raw
+    staging: staging
+    dim: dim
+    fact: fact
+
+quality:
+  fail_on_error: true            # stop the run if a data quality check fails
+  max_duplicate_player_weeks: 0
+  min_row_count_ratio: 0.99      # loaded rows / source rows must be at least this
+
+logging:
+  level: INFO

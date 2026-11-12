@@ -9,14 +9,31 @@ project:
 
 source:
   provider: nflverse
+  base_url: https://github.com/nflverse/nflverse-data/releases/download
   seasons:
     start: 2010
     end: null            # null = latest available season
-  datasets:
-    - players
-    - rosters
-    - schedules
-    - injuries
+  http:
+    timeout_seconds: 120
+    retries: 3
+    backoff_seconds: 2
+  datasets:              # path is relative to base_url; {season} is filled for per_season datasets
+    injuries:
+      path: "injuries/injuries_{season}.csv"
+      per_season: true
+      table: injuries
+    rosters_weekly:
+      path: "weekly_rosters/roster_weekly_{season}.csv"
+      per_season: true
+      table: rosters_weekly
+    players:
+      path: "players/players.csv"
+      per_season: false
+      table: players
+    games:
+      path: "schedules/games.csv"
+      per_season: false
+      table: games
 
 paths:                   # relative to repo root
   raw_files: raw_files

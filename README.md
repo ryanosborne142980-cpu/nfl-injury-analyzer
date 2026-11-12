@@ -2,7 +2,7 @@
 
 NFL player availability and injury warehouse, 2010 to present, built from [nflverse](https://github.com/nflverse/nflverse-data) data.
 
-**Status:** scaffold. Schema designed, pipeline not yet built.
+**Status:** extract and raw-layer load are built and unit-tested. Staging, dimensions and facts are next. The raw load has not yet been run against a live SQL Server.
 
 ## Goal
 
@@ -13,7 +13,9 @@ Model every NFL player since 2010 in a dimensional warehouse and measure teams p
 - **Grain:** `fact_player_week` is one row per player, season, week. Players are a dimension, not the fact.
 - **Injury geography is inferred, not sourced.** nflverse injury reports (available since 2009) give weekly status and body part, with no field for where or when the injury happened. `fact_injury_episode` infers the onset venue from the last game before a player first appears on the report, and records `inference_method` so a guess is never mistaken for a fact.
 - **Teams are SCD2** (`valid_from`, `valid_to`) to handle franchise relocations.
-- **Raw files are retained** under `raw_files/` (partitioned by season and load date) before loading, so any run can be replayed.
+- **Raw files are retained** under `raw_files/<dataset>/load_date=<date>/season=<year>/` before loading, each with a manifest (url, sha256, row count), so any run can be replayed.
+- **Source data findings drive the staging rules.** See [docs/data_profile.md](docs/data_profile.md): team codes differ across datasets and eras, 2010 to 2015 weekly rosters have duplicate keys, and stadium names change while IDs don't.
+- **Stadium geography needs a seed.** The games file has stadium ID, roof and surface but no city, state, latitude or longitude, so `dim_stadium` needs a verified 52-row seed.
 
 ## Schema
 
@@ -33,7 +35,7 @@ erDiagram
     int date_key FK
     int stadium_key FK
     int injury_key FK
-    bool played_flag
+    string roster_status
     bool on_report_flag
   }
   FACT_INJURY_EPISODE {
@@ -90,11 +92,24 @@ erDiagram
 
 ## Pipeline
 
-1. **Extract:** Python pulls nflverse files (rosters, players, schedules, injuries) into `raw_files/`.
-2. **Land:** load raw files as-is into `raw.*` tables with `load_date` and `source_file`.
+1. **Extract** (`src/ingestion/extract.py`): downloads weekly rosters, players, games and injuries from nflverse into `raw_files/` with retries, atomic writes, validation and a manifest per file.
+2. **Land** (`src/ingestion/load_raw.py`): loads the files as text into `raw.*` tables. Every load is logged in `raw.load_batch` with a row-count reconciliation, and a re-run replaces the same season or table.
 3. **Transform:** T-SQL builds `dim_*` and `fact_*`, including the SCD2 team dimension and injury-episode inference.
 4. **Test:** Python data quality checks (duplicate player-weeks, orphan `gsis_id`s, impossible team/date combinations, row-count reconciliation against source).
 5. **Serve:** Power BI over the star schema.
+
+## Run
+
+Prerequisites: Python 3.10+, SQL Server with the ODBC Driver 18, and an empty database named as `database.name` in `config/dev.yaml` (default `nfl_injury_dev`).
+
+```
+pip install -r requirements.txt
+python -m src.ingestion.extract                    # download all configured seasons
+python -m src.ingestion.load_raw --apply-ddl       # create schemas and raw tables, then load
+python -m pytest                                   # unit tests, no database needed
+```
+
+Both commands accept `--datasets` and `--seasons` to run a subset.
 
 ## Layout
 

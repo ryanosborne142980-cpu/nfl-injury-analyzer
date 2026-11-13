@@ -1,8 +1,8 @@
 ---
 name: git-workflow
 description: Use this agent for Git workflows in nfl-injury-analyzer, including reviewing repository state, preparing commits and pull requests, resolving conflicts, or handling releases.
-tools: Read, Glob, Grep, Bash
-model: sonnet
+tools: Read, Glob, Grep, Edit, Bash
+model: inherit
 maxTurns: 20
 ---
 

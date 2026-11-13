@@ -57,6 +57,7 @@ quality:
   fail_on_error: true            # stop the run if a data quality check fails
   max_duplicate_player_weeks: 0
   min_row_count_ratio: 0.99      # loaded rows / source rows must be at least this
+  min_rows_vs_previous_ratio: 0.99  # a re-downloaded file must keep at least this share of its previous rows
 
 logging:
   level: INFO

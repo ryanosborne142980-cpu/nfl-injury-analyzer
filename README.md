@@ -111,12 +111,24 @@ python -m pytest                                   # unit tests, no database nee
 
 Both commands accept `--datasets` and `--seasons` to run a subset.
 
+### Daily refresh
+
+`python -m src.ingestion.run_daily` re-downloads the current season plus the players and games files, checks them, and loads them only if the checks pass. Checks (`src/ingestion/checks.py`): every file column must exist in the `sql/raw` table (catches nflverse format changes), and a re-downloaded file must keep at least `quality.min_rows_vs_previous_ratio` of its previous row count. It exits 1 on any failure and logs to `logs/`. Use `--skip-load` to extract and check without a database.
+
+To schedule it daily (default 05:00 local, after nflverse's 07:00 UTC refresh):
+
+```
+.\scripts\register_daily_task.ps1                  # register the Windows scheduled task
+Unregister-ScheduledTask -TaskName NflDailyIngestion -Confirm:$false   # remove it
+```
+
 ## Layout
 
 ```
 config/             environment settings (dev.yaml), no secrets
 src/ingestion/      Python extraction from nflverse
 src/utilities/      config loader, shared helpers
+scripts/            Windows Task Scheduler setup for the daily refresh
 sql/raw|staging|dim|fact/   DDL and transforms, one folder per layer
 tests/unit|integration|data_quality/
 docs/               schema, data dictionary, decision log

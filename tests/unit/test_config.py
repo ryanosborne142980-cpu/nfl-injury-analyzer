@@ -35,7 +35,10 @@ def test_missing_file(tmp_path):
         load_config("nope", config_dir=tmp_path)
 
 
-@pytest.mark.parametrize("key", ["password", "user", "token", "secret"])
+@pytest.mark.parametrize(
+    "key",
+    ["password", "user", "token", "secret", "db_password", "client_secret", "access_token", "SA-PWD", "api_key"],
+)
 def test_rejects_secret_keys(tmp_path, key):
     data = {**VALID, "database": {**VALID["database"], key: "x"}}
     with pytest.raises(ConfigError, match="Secret-like keys"):
@@ -83,4 +86,14 @@ def test_connection_string_sql_auth_requires_env(tmp_path, monkeypatch):
         cfg.connection_string()
     monkeypatch.setenv("DB_USER", "svc")
     monkeypatch.setenv("DB_PASSWORD", "pw")
-    assert "UID=svc;PWD=pw" in cfg.connection_string()
+    assert "UID={svc};PWD={pw}" in cfg.connection_string()
+
+
+def test_connection_string_quotes_special_characters(tmp_path, monkeypatch):
+    data = {**VALID, "database": {**VALID["database"], "trusted_connection": False}}
+    cfg = load_config("test", config_dir=write_cfg(tmp_path, data))
+    monkeypatch.setenv("DB_USER", "svc")
+    monkeypatch.setenv("DB_PASSWORD", "a;b}c")
+    conn = cfg.connection_string()
+    assert conn.startswith("DRIVER={ODBC Driver 18 for SQL Server};")
+    assert conn.endswith("UID={svc};PWD={a;b}}c}")

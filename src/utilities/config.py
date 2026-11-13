@@ -6,6 +6,7 @@ environment variables, and the loader refuses YAML files that contain secret-lik
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,17 @@ def _walk_keys(node: Any, prefix: str = ""):
     elif isinstance(node, list):
         for item in node:
             yield from _walk_keys(item, prefix)
+
+
+def _is_secret_key(key: str) -> bool:
+    """True if the key, or any _/- separated part of it, names a secret (e.g. db_password)."""
+    k = key.lower()
+    return k in FORBIDDEN_KEYS or any(part in FORBIDDEN_KEYS for part in re.split(r"[_\-]", k))
+
+
+def _odbc_quote(value: Any) -> str:
+    """Brace-quote an ODBC connection-string value so ';' and '}' inside it are literal."""
+    return "{" + str(value).replace("}", "}}") + "}"
 
 
 def _dig(data: dict, dotted: str) -> Any:
@@ -90,7 +102,7 @@ class Config:
         """
         db = self.data["database"]
         parts = [
-            f"DRIVER={{{db['driver']}}}",
+            f"DRIVER={_odbc_quote(db['driver'])}",
             f"SERVER={db['server']},{db.get('port', 1433)}",
             f"DATABASE={database or db['name']}",
             f"Encrypt={'yes' if db.get('encrypt', True) else 'no'}",
@@ -104,7 +116,7 @@ class Config:
                 raise ConfigError(
                     "database.trusted_connection is false: set DB_USER and DB_PASSWORD environment variables"
                 )
-            parts += [f"UID={user}", f"PWD={password}"]
+            parts += [f"UID={_odbc_quote(user)}", f"PWD={_odbc_quote(password)}"]
         return ";".join(parts)
 
 
@@ -120,7 +132,7 @@ def load_config(env: str | None = None, config_dir: Path | None = None) -> Confi
     if not isinstance(data, dict):
         raise ConfigError(f"{path.name} must contain a YAML mapping")
 
-    leaked = [p for key, p in _walk_keys(data) if key.lower() in FORBIDDEN_KEYS]
+    leaked = [p for key, p in _walk_keys(data) if _is_secret_key(key)]
     if leaked:
         raise ConfigError(
             f"Secret-like keys found in {path.name}: {', '.join(leaked)}. Use environment variables instead."

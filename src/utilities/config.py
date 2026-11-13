@@ -83,13 +83,16 @@ class Config:
             raise ConfigError(f"source.seasons.end ({end}) is before start ({start})")
         return range(start, end + 1)
 
-    def connection_string(self) -> str:
-        """Build an ODBC connection string. Credentials are read from the environment."""
+    def connection_string(self, database: str | None = None) -> str:
+        """Build an ODBC connection string. Credentials are read from the environment.
+
+        database overrides database.name (the bootstrap connects to master before the database exists).
+        """
         db = self.data["database"]
         parts = [
             f"DRIVER={{{db['driver']}}}",
             f"SERVER={db['server']},{db.get('port', 1433)}",
-            f"DATABASE={db['name']}",
+            f"DATABASE={database or db['name']}",
             f"Encrypt={'yes' if db.get('encrypt', True) else 'no'}",
             f"TrustServerCertificate={'yes' if db.get('trust_server_certificate', False) else 'no'}",
         ]

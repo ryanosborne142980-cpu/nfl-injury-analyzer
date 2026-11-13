@@ -47,6 +47,17 @@ database:
   trusted_connection: true       # Windows/Kerberos auth. false = SQL auth via DB_USER / DB_PASSWORD env vars
   encrypt: true
   trust_server_certificate: true # dev only. Set false in prod.
+  bootstrap:                     # used by python -m src.utilities.bootstrap
+    collation: Latin1_General_100_CI_AS_SC_UTF8   # UTF-8 so accented player names survive (SQL Server 2019+)
+    recovery_model: SIMPLE       # rebuildable warehouse, so skip full logging
+    read_committed_snapshot: true
+    data_file_mb: 1024           # pre-sized on create to avoid small autogrowth stalls
+    log_file_mb: 512
+    file_growth_mb: 256
+    instance:                    # instance-wide; applied only with --tune-instance
+      max_server_memory_mb: 6144
+      max_degree_of_parallelism: 4
+      cost_threshold_for_parallelism: 50
   schemas:
     raw: raw
     staging: staging

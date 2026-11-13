@@ -6,10 +6,10 @@ from pathlib import Path
 from src.utilities.config import Config
 
 
-def connect(cfg: Config, autocommit: bool = False):
+def connect(cfg: Config, autocommit: bool = False, database: str | None = None):
     import pyodbc
 
-    return pyodbc.connect(cfg.connection_string(), autocommit=autocommit)
+    return pyodbc.connect(cfg.connection_string(database), autocommit=autocommit)
 
 
 def apply_sql_dir(conn, directory: Path) -> list[str]:

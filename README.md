@@ -100,16 +100,19 @@ erDiagram
 
 ## Run
 
-Prerequisites: Python 3.10+, SQL Server with the ODBC Driver 18, and an empty database named as `database.name` in `config/dev.yaml` (default `nfl_injury_dev`).
+Prerequisites: Python 3.10+ and SQL Server 2019+ with the ODBC Driver 18. The bootstrap creates the database named `database.name` in `config/dev.yaml` (default `nfl_injury_dev`).
 
 ```
 pip install -r requirements.txt
+python -m src.utilities.bootstrap                  # create database, apply sql/ files, verify (re-runnable)
 python -m src.ingestion.extract                    # download all configured seasons
-python -m src.ingestion.load_raw --apply-ddl       # create schemas and raw tables, then load
+python -m src.ingestion.load_raw                   # load raw_files/ into the raw tables
 python -m pytest                                   # unit tests, no database needed
 ```
 
-Both commands accept `--datasets` and `--seasons` to run a subset.
+The bootstrap reads `database.bootstrap` in the config (collation, recovery model, file sizes) and records each applied SQL file's hash in `meta.schema_version`. It stops if an applied file has changed (`--accept-changes` re-runs it). `--tune-instance` also sets instance-wide max memory and parallelism, which affects every database on the server, so it is opt-in.
+
+`extract` and `load_raw` accept `--datasets` and `--seasons` to run a subset.
 
 ### Daily refresh
 

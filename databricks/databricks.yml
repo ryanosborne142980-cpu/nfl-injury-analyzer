@@ -1,0 +1,49 @@
+# Bronze and silver layers on Databricks, deployed from code.
+#   databricks bundle deploy -p nfl
+#   python databricks/land_raw.py
+#   databricks bundle run lakehouse -p nfl
+bundle:
+  name: nfl_injury_analyzer
+
+workspace:
+  # Local CLI profile name; the workspace URL stays out of the repo.
+  profile: nfl
+
+variables:
+  schema:
+    description: Schema that holds the volume and tables
+    default: nfl_injury
+
+resources:
+  schemas:
+    nfl_injury:
+      catalog_name: workspace
+      name: ${var.schema}
+      comment: NFL player availability and injuries from nflverse
+
+  volumes:
+    raw:
+      catalog_name: workspace
+      schema_name: ${resources.schemas.nfl_injury.name}
+      name: raw
+      volume_type: MANAGED
+      comment: nflverse files exactly as downloaded. Never edited, so bronze can be replayed.
+
+  pipelines:
+    lakehouse:
+      name: ${var.schema}_lakehouse
+      catalog: workspace
+      schema: ${resources.schemas.nfl_injury.name}
+      serverless: true
+      continuous: false
+      configuration:
+        nfl.volume: /Volumes/workspace/${var.schema}/raw
+      libraries:
+        - file:
+            path: pipelines/bronze.py
+        - file:
+            path: pipelines/silver.py
+
+targets:
+  dev:
+    default: true

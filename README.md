@@ -120,6 +120,7 @@ src/utilities/      config loader, shared helpers
 sql/raw|staging|dim|fact/   DDL and transforms, one folder per layer
 tests/unit|integration|data_quality/
 docs/               schema, data dictionary, decision log
+databricks/         bundle, bronze and silver pipelines, volume upload
 raw_files/          downloaded source files (git-ignored)
 ```
 
@@ -136,6 +137,16 @@ conn_str = cfg.connection_string()
 ```
 
 Run the tests with `python -m pytest`.
+
+## Lakehouse layer (Databricks)
+
+`databricks/` adds bronze and silver tables beside SQL Server. `land_raw.py` copies the downloaded files into a Databricks volume, Auto Loader reads them into append-only bronze tables, and silver tables are typed and de-duplicated with row-level expectations. SQL Server keeps the dimensional model. Not yet run on a workspace; see `docs/decisions/0001-databricks-lakehouse-layer.md` for what is built and what is left open.
+
+```
+python databricks/land_raw.py                      # copy raw_files/ into the volume
+databricks bundle deploy -p nfl                    # from databricks/
+databricks bundle run lakehouse -p nfl
+```
 
 ## Authors
 

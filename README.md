@@ -1,5 +1,7 @@
 # nfl-injury-analyzer
 
+[![CI](https://github.com/ryanosborne142980-cpu/nfl-injury-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanosborne142980-cpu/nfl-injury-analyzer/actions/workflows/ci.yml)
+
 NFL player availability and injury warehouse, 2010 to present, built from [nflverse](https://github.com/nflverse/nflverse-data) data.
 
 **Status:** extract and raw-layer load are built and unit-tested. Staging, dimensions and facts are next. The raw load has not yet been run against a live SQL Server.
@@ -134,8 +136,6 @@ cfg = load_config()                       # NFL_ENV or "dev"
 seasons = cfg.season_range(current_season=2025)
 conn_str = cfg.connection_string()
 ```
-
-Run the tests with `python -m pytest`.
 
 ## Authors
 

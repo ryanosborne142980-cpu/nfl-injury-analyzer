@@ -1,4 +1,5 @@
 """Shared test helpers: build a throwaway config that points at temp folders."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,18 +18,19 @@ def make_cfg(tmp_path: Path, end: int | None = None, start: int = 2010) -> Confi
             "seasons": {"start": start, "end": end},
             "http": {"timeout_seconds": 5, "retries": 2, "backoff_seconds": 0},
             "datasets": {
-                "injuries": {"path": "injuries/injuries_{season}.csv", "per_season": True, "table": "injuries"},
-                "games": {"path": "schedules/games.csv", "per_season": False, "table": "games"},
+                "injuries": {
+                    "path": "injuries/injuries_{season}.csv",
+                    "per_season": True,
+                    "table": "injuries",
+                },
+                "games": {
+                    "path": "schedules/games.csv",
+                    "per_season": False,
+                    "table": "games",
+                },
             },
         },
-        "paths": {"raw_files": str(tmp_path / "raw"), "sql": "sql"},
-        "database": {
-            "driver": "ODBC Driver 18 for SQL Server",
-            "server": "localhost",
-            "name": "nfl_test",
-            "trusted_connection": True,
-            "schemas": {"raw": "raw"},
-        },
+        "paths": {"raw_files": str(tmp_path / "raw")},
     }
     cfg_dir = tmp_path / "cfg"
     cfg_dir.mkdir(exist_ok=True)

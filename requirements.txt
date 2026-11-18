@@ -1,5 +1,2 @@
-nflreadpy
-pandas
-pyodbc
 pyyaml
 pytest

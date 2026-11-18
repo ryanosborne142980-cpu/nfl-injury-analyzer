@@ -38,7 +38,7 @@ Run focused tests while iterating and the full test suite before committing or o
 python -m pytest
 ```
 
-If `sql/raw/*.sql` changed, run `python -m pytest tests/unit/test_raw_ddl.py`. If a staging rule or data finding changed, confirm `docs/data_profile.md` is updated. Tests do not require a live SQL Server; state whether live-server validation was performed.
+If a staging rule or data finding changed, confirm `docs/data_profile.md` is updated. Tests do not require Azure resources; state whether live-workspace validation was performed.
 
 An optional staged-file heuristic for likely credential assignments is:
 

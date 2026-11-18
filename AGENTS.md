@@ -13,17 +13,16 @@ This repository builds an NFL injury and player-availability warehouse from nflv
 
 ## Project conventions
 
-- Python source is in `src/`; SQL is organized under `sql/raw`, `sql/staging`, `sql/dim`, and `sql/fact`.
+- Python source is in `src/`. The target platform is ADLS Gen2 + Synapse serverless; add SQL under `sql/` only when a layer is actually built.
 - Raw downloads belong under `raw_files/` and must not be committed. Use sanitized fixtures under `tests/fixtures/` for tests.
-- Keep secrets out of YAML configuration. Database credentials are read from `DB_USER` and `DB_PASSWORD` environment variables.
+- Keep secrets out of YAML configuration. Credentials come from environment variables or Azure sign-in, never from files in the repo.
 - Injury geography is inferred, not sourced. Preserve explicit inference metadata and update `docs/data_profile.md` when staging rules or data findings change.
 - Follow the existing project style and prefer small, single-purpose changes.
 
 ## Validation
 
 - Run focused tests during development and `python -m pytest` before committing or opening a pull request. Do not proceed with those actions when tests fail.
-- If `sql/raw/*.sql` changes, run `python -m pytest tests/unit/test_raw_ddl.py`.
-- Tests use fixtures and do not require a live SQL Server. State clearly whether a change was also validated against a live server.
+- Tests use fixtures and do not require Azure resources. State clearly whether a change was also validated against a live workspace.
 - Review staged and untracked files separately; a clean `git diff` does not show untracked files.
 - Secret searches are useful heuristics, not proof that a repository is secret-free.
 

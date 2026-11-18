@@ -15,7 +15,7 @@ Profiled 2010 to 2026 (season 2026 in progress) from the nflverse release files.
 
 | # | Finding | Staging rule |
 |---|---|---|
-| 1 | **Schema drift in injuries.** 2025 and later files add `season_type` and drop `date_modified`. | Raw tables carry the union of columns, all nullable. The loader fails on any column the table doesn't have, and a test keeps the DDL in sync with real headers. |
+| 1 | **Schema drift in injuries.** 2025 and later files add `season_type` and drop `date_modified`. | Tables over the raw files carry the union of columns, all nullable. A new column must be detected, not silently dropped. |
 | 2 | **Weekly rosters have duplicate keys in 2010 to 2015** (8,752 keys, 18,246 rows). Rows for the same player, team and week differ only in `status` (for example ACT plus TRC, TRD plus RES). | Collapse to one row per player, team and week with a documented status precedence. Record the rule in this log when implemented. |
 | 3 | **Team codes differ by dataset and era.** 2010 to 2015 rosters use ARZ, BLT, CLV, HST and SL. Games and injuries use ARI, BAL, CLE, HOU and STL. | Map roster codes to the games and injuries codes before any join. 35 distinct codes appear since 2010 because of relocations (OAK to LV, SD to LAC, STL to LA), which `dim_team` handles as SCD2. |
 | 4 | **Injury rows join cleanly to games on season, week and team.** 99.98% match (89,011 of 89,028 rows), and the only misses are 17 rows for BUF and CIN in 2022 week 17. That is consistent with the cancelled BUF vs CIN game, but the data doesn't say so directly. | The onset-venue inference can rely on this join. Treat the BUF/CIN week 17 rows as unmatched and keep them. |

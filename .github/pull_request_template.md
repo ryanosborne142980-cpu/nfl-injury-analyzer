@@ -9,7 +9,6 @@
 ## Validation
 
 - [ ] `python -m pytest` passed
-- [ ] `python -m pytest tests/unit/test_raw_ddl.py` passed (if raw DDL changed)
 - [ ] Live SQL Server validation status is stated below
 
 Live SQL Server validation: <!-- Not run / Run against development / Other -->

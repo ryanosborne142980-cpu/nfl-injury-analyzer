@@ -1,8 +1,9 @@
 """Load and validate environment config from config/<env>.yaml.
 
-Non-secret settings live in YAML. Secrets (DB_USER, DB_PASSWORD) come only from
-environment variables, and the loader refuses YAML files that contain secret-like keys.
+Non-secret settings live in YAML. Secrets come only from environment variables, and the
+loader refuses YAML files that contain secret-like keys.
 """
+
 from __future__ import annotations
 
 import os
@@ -15,18 +16,23 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = REPO_ROOT / "config"
 
-FORBIDDEN_KEYS = {"password", "pwd", "secret", "token", "api_key", "apikey", "user", "username", "uid"}
+FORBIDDEN_KEYS = {
+    "password",
+    "pwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "user",
+    "username",
+    "uid",
+}
 
 REQUIRED_KEYS = [
     "env",
     "source.seasons.start",
     "source.datasets",
     "paths.raw_files",
-    "paths.sql",
-    "database.driver",
-    "database.server",
-    "database.name",
-    "database.schemas.raw",
 ]
 
 
@@ -83,27 +89,6 @@ class Config:
             raise ConfigError(f"source.seasons.end ({end}) is before start ({start})")
         return range(start, end + 1)
 
-    def connection_string(self) -> str:
-        """Build an ODBC connection string. Credentials are read from the environment."""
-        db = self.data["database"]
-        parts = [
-            f"DRIVER={{{db['driver']}}}",
-            f"SERVER={db['server']},{db.get('port', 1433)}",
-            f"DATABASE={db['name']}",
-            f"Encrypt={'yes' if db.get('encrypt', True) else 'no'}",
-            f"TrustServerCertificate={'yes' if db.get('trust_server_certificate', False) else 'no'}",
-        ]
-        if db.get("trusted_connection", False):
-            parts.append("Trusted_Connection=yes")
-        else:
-            user, password = os.getenv("DB_USER"), os.getenv("DB_PASSWORD")
-            if not user or not password:
-                raise ConfigError(
-                    "database.trusted_connection is false: set DB_USER and DB_PASSWORD environment variables"
-                )
-            parts += [f"UID={user}", f"PWD={password}"]
-        return ";".join(parts)
-
 
 def load_config(env: str | None = None, config_dir: Path | None = None) -> Config:
     """Load config/<env>.yaml. The env defaults to the NFL_ENV variable, then 'dev'."""
@@ -130,9 +115,13 @@ def load_config(env: str | None = None, config_dir: Path | None = None) -> Confi
         except KeyError:
             missing.append(dotted)
     if missing:
-        raise ConfigError(f"Missing required config keys in {path.name}: {', '.join(missing)}")
+        raise ConfigError(
+            f"Missing required config keys in {path.name}: {', '.join(missing)}"
+        )
 
     if data["env"] != env:
-        raise ConfigError(f"{path.name} declares env '{data['env']}' but '{env}' was requested")
+        raise ConfigError(
+            f"{path.name} declares env '{data['env']}' but '{env}' was requested"
+        )
 
     return Config(data=data, env=env)

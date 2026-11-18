@@ -1,124 +1,142 @@
 ---
-name: python-code-review
+name: python-code-reviewer
 description: >
-  Review Python code for quality, correctness, security, and style.
-  Triggered when user says "review this Python code", "code review",
-  "check my Python", pastes Python snippets asking for feedback,
-  or provides a .py file path for review. Use /python-code-review to invoke.
+  Review Python source for correctness, security, performance, style,
+  scalability, reusability, maintainability, and error handling. Use when asked
+  to review Python code, check Python code, or review a Python file. Do not use
+  for implementing changes unless the user also asks for fixes.
 version: 1.0.0
 ---
 
 # Python Code Review
 
-You are performing a structured Python code review. Follow this framework every time.
+Review the submitted Python code for actionable problems. Be precise, explain
+impact, and distinguish confirmed defects from context-dependent concerns.
+Do not modify files unless the user explicitly asks for changes.
 
-## Step 1: Get the Code
+## 1. Identify the input and scope
 
-- If `$ARGUMENTS` is a file path ending in `.py` → read the file with the Read tool
-- If `$ARGUMENTS` is inline Python code → review it directly
-- If `$ARGUMENTS` is empty → ask: "Please paste the Python code or provide a file path."
+- If the user provides a Python file path, read that file using the available
+  file-reading tools before reviewing it.
+- If the user pastes Python code, review the pasted code.
+- If the user provides both a file path and pasted code, review the file and
+  use the pasted code as context only when that intent is clear. If it is
+  unclear which version to review, ask before proceeding.
+- If no code or file path is provided, ask the user to provide it.
+- Review only the requested code. Use surrounding code, tests, and project
+  conventions when available to verify behavior; do not speculate about code
+  that is not available.
 
-## Step 2: Review Across 6 Dimensions
+## 2. Review dimensions
 
-Evaluate every submission against all six dimensions. Skip a dimension only if it truly has nothing to flag.
+Consider each dimension. Report only relevant findings; omit dimensions with no
+actionable findings.
 
-### 1. Correctness
-- Logic bugs, off-by-one errors, wrong operator precedence
-- Edge cases: empty inputs, `None`, zero, very large values
-- Mutating arguments the caller doesn't expect to change
-- Incorrect use of mutable default arguments (`def f(x=[])`)
-- Relying on dict ordering in Python < 3.7
+### Correctness
 
-### 2. Security
-- Hardcoded secrets, tokens, or passwords
-- Shell injection via `subprocess` with `shell=True` + user input
-- SQL injection via string formatting instead of parameterized queries
-- `pickle`/`yaml.load` on untrusted data (unsafe deserialization)
-- `eval()`/`exec()` on user-controlled strings
-- Path traversal when constructing file paths from user input
-- Unvalidated redirects or URLs passed to `requests`
+- Logic errors, incorrect assumptions, boundary conditions, and unexpected
+  behavior for empty, `None`, zero, or unusually large inputs.
+- Mutable default arguments and unintended mutation or aliasing.
+- Version-dependent behavior that conflicts with the project's supported
+  Python versions.
+- Incorrect handling of types, values, ordering, or concurrency where relevant.
 
-### 3. Performance
-- O(n²) nested loops where a set/dict lookup would be O(1)
-- DB or I/O calls inside a loop (N+1 pattern)
-- Re-computing the same value repeatedly (missing variable or `functools.lru_cache`)
-- Concatenating strings in a loop (`+=`) instead of `"".join()`
-- Loading an entire file into memory when streaming would work
-- Unnecessary deep copies of large data structures
+### Security
 
-### 4. Pythonic Style
-- PEP 8: snake_case for variables/functions, PascalCase for classes, UPPER_CASE for constants
-- Use list/dict/set comprehensions where they improve clarity (not blindly)
-- Prefer `with` statements for file/lock/connection management
-- Use `enumerate()` instead of `range(len(x))`
-- Use `zip()` instead of index-based parallel iteration
-- Unpack tuples and use `_` for unused values
-- Use `is` / `is not` for `None`, `True`, `False` comparisons
+- Hardcoded credentials or secrets.
+- Injection risks, such as untrusted input passed to shell commands, SQL, or
+  dynamic code execution. Consider whether inputs are actually controllable and
+  whether safe parameterization or validation is used.
+- Unsafe deserialization of untrusted data, such as `pickle` or unsafe YAML
+  loading.
+- Path traversal, unsafe file permissions, or untrusted URLs/redirects where
+  applicable.
+- Explain the required conditions and impact; do not label a pattern
+  vulnerable without evidence that the risky input path is reachable.
 
-### 5. Maintainability
-- Public functions/classes/modules missing docstrings
-- Missing type hints on public API functions
-- Magic numbers and strings (extract to named constants)
-- Functions doing more than one thing (> ~20 lines is a smell)
-- Deep nesting (> 3 levels — consider early returns or helper functions)
-- Duplicate logic that should be extracted
+### Performance
 
-### 6. Error Handling
-- Bare `except:` or `except Exception:` without re-raise or logging
-- Swallowed exceptions (catch + `pass`)
-- Missing `finally` or `with` for resource cleanup
-- Raising `Exception` directly instead of a specific or custom exception class
-- Error messages that leak implementation details to end users
+- Work that grows poorly with realistic input sizes, such as avoidable
+  quadratic searches or repeated I/O/database calls in loops.
+- Repeated expensive computation, unnecessary copying, or loading large inputs
+  fully into memory when streaming is practical.
+- Report performance concerns only when the likely impact is meaningful; nested
+  loops or string concatenation alone do not prove a bottleneck.
 
-## Step 3: Output Format
+### Scalability and reusability
 
-Start with a one-line verdict:
+- Assess whether the design can handle expected growth in data volume,
+  concurrency, or workload without disproportionate resource use or operational
+  complexity.
+- Prefer reusable, cohesive functions and components for logic that has
+  multiple callers or is likely to be shared. Flag avoidable duplication,
+  hidden dependencies, or overly narrow interfaces when they make safe reuse
+  difficult.
+- Consider whether behavior that varies by caller should be passed explicitly
+  rather than hard-coded or coupled to global state.
+- Do not recommend generic frameworks, extra layers, or abstractions without a
+  concrete reuse or scalability benefit. Keep one-off logic simple.
 
-```
-Overall: [LOOKS GOOD | MINOR ISSUES | NEEDS WORK | BLOCKED — critical issues found]
-```
+### Python style
 
-Then list findings grouped by severity. Omit a severity tier if empty.
+- Follow the project's established conventions first; otherwise use clear,
+  conventional Python style.
+- Prefer comprehensions, `enumerate()`, `zip()`, unpacking, and context managers
+  when they make the code clearer or safer, not as mechanical rules.
+- Use `is None` / `is not None` for `None`. Do not recommend identity checks
+  against booleans unless singleton identity is specifically intended.
 
-**Format for each finding:**
-```
+### Maintainability
+
+- Assess clarity, cohesion, duplication, unnecessary complexity, and meaningful
+  naming.
+- Consider missing documentation or type hints for public APIs when the project
+  expects them. Do not flag private helpers mechanically.
+- Treat line count, nesting depth, and constants as prompts to inspect—not
+  defects by themselves.
+
+### Error handling
+
+- Look for swallowed exceptions, bare catches, missing cleanup for acquired
+  resources, and errors that are hidden or misreported.
+- Check that exceptions are handled at the appropriate boundary: propagate,
+  translate, or log once as appropriate, without swallowing them.
+- Flag implementation details in messages only when they are exposed across a
+  user-facing or otherwise untrusted boundary.
+
+## 3. Report findings
+
+Start with exactly one verdict:
+
+`Overall: <LOOKS GOOD | MINOR ISSUES | NEEDS WORK | BLOCKED>`
+
+Use `BLOCKED` only when missing code or context prevents a meaningful review.
+Otherwise choose the verdict based on the impact and number of actionable
+findings.
+
+Group findings by severity, omitting empty tiers. Use the most relevant
+available line number or symbol; never invent line numbers.
+
+For each finding, use:
+
+```text
 [SEVERITY] line N — Short title
-Problem: What is wrong and why it matters.
-Fix:
-  <code snippet showing the corrected version>
+Problem: Describe the evidence, impact, and relevant conditions.
+Recommendation: Describe a focused fix. Include a short code example only when
+it makes the fix clearer.
 ```
 
-End with a "Strengths" section acknowledging what's done well (even briefly).
+Severity:
 
----
+- `[CRITICAL]` — Confirmed, severe security exposure, data loss/corruption, or
+  failure in normal use with substantial impact.
+- `[WARNING]` — A likely correctness defect, meaningful edge-case failure, or
+  significant reliability/performance concern.
+- `[SUGGESTION]` — A non-blocking clarity, style, or maintainability
+  improvement.
 
-## Severity Definitions
+Do not inflate severity. If a concern depends on an assumption, state that
+assumption and lower the severity as appropriate.
 
-| Severity | When to use |
-|----------|-------------|
-| `[CRITICAL]` | Security vulnerability, data loss risk, or crashes in normal use |
-| `[WARNING]` | Bug in edge cases, significant performance issue, swallowed exception |
-| `[SUGGESTION]` | Style, readability, idiomatic improvement — non-blocking |
-
-## Decision Guidance
-
-- **Don't rewrite working logic** just to make it "more Pythonic" unless the readability gain is clear and the logic is equivalent.
-- **Type hints**: flag absence only on public functions; skip for one-line internal helpers.
-- **Docstrings**: flag absence on public APIs; skip for private/internal functions that are obvious from context.
-- **Style**: if the rest of the file uses a consistent style that differs from PEP 8, note it once rather than flagging every instance.
-- **Scope**: review only what was submitted. Don't speculate about code not shown.
-
-## Common Anti-Pattern Quick Reference
-
-| Anti-pattern | Preferred alternative |
-|---|---|
-| `for i in range(len(lst))` | `for i, val in enumerate(lst)` |
-| `lst = []; for x in …: lst += [f(x)]` | `lst = [f(x) for x in …]` |
-| `open(f)` without `with` | `with open(f) as fh:` |
-| `except Exception: pass` | Log or re-raise; never swallow silently |
-| `def f(x=[])` | `def f(x=None): x = x or []` |
-| `subprocess.run(cmd, shell=True)` | Pass list: `subprocess.run(["cmd", arg])` |
-| `"SELECT … " + user_input` | Parameterized queries: `cursor.execute(q, (val,))` |
-| `yaml.load(data)` | `yaml.safe_load(data)` |
-| `pickle.loads(untrusted)` | Use JSON or validate source first |
-| `if x == None` | `if x is None` |
+End with `Strengths`, briefly noting concrete positive aspects. If there are no
+actionable findings, say so plainly and do not invent issues to fill the report.

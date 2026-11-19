@@ -7,3 +7,8 @@ venv/
 .pytest_cache/
 *.bak
 .DS_Store
+
+# Personal, never committed (repo is public)
+CLAUDE.local.md
+.claude/local/
+src/ingestion/practice.py

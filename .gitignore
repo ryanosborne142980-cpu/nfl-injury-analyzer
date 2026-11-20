@@ -12,3 +12,7 @@ venv/
 CLAUDE.local.md
 .claude/local/
 src/ingestion/practice.py
+resume.md
+.mcp.json
+merge-landoffer.py
+start-claude-landoffer.ps1
